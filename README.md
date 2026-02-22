@@ -2,8 +2,8 @@
 
 > Upload a lab report. Get instant diagnostic insights from 5 specialist ML models.
 
-**Live Demo:** [https://hemalens.netlify.app](https://hemalens.netlify.app) <!-- update with your Netlify URL -->  
-**API:** [https://hemalens-api.onrender.com/docs](https://hemalens-api.onrender.com/docs) <!-- update with your Render URL -->
+**Live Demo:** [https://hemalens.netlify.app](https://hemalens.netlify.app)  
+**API:** [https://hemalens-api.onrender.com/docs](https://hemalens.onrender.com) 
 
 ---
 
