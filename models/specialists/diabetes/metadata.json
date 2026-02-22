@@ -1,0 +1,21 @@
+{
+  "specialist": "diabetes",
+  "description": "Glucose/HbA1c-based diabetes detection (100k rows)",
+  "feature_names": [
+    "Glucose",
+    "HbA1c",
+    "BMI",
+    "Age"
+  ],
+  "target_classes": [
+    "Diabetes Mellitus",
+    "Normal"
+  ],
+  "n_classes": 2,
+  "test_accuracy": 0.971,
+  "test_f1_weighted": 0.9685,
+  "cv_f1_mean": 0.9695,
+  "cv_f1_std": 0.0004,
+  "n_train_samples": 80000,
+  "min_features_required": 1
+}

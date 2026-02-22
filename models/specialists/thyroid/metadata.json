@@ -1,0 +1,21 @@
+{
+  "specialist": "thyroid",
+  "description": "Thyroid function panel classification",
+  "feature_names": [
+    "TSH",
+    "T3",
+    "T4"
+  ],
+  "target_classes": [
+    "Hyperthyroidism",
+    "Hypothyroidism",
+    "Normal"
+  ],
+  "n_classes": 3,
+  "test_accuracy": 0.8523,
+  "test_f1_weighted": 0.8405,
+  "cv_f1_mean": 0.8412,
+  "cv_f1_std": 0.0019,
+  "n_train_samples": 7337,
+  "min_features_required": 1
+}

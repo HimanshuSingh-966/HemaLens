@@ -1,0 +1,26 @@
+{
+  "specialist": "kidney",
+  "description": "Renal function panel classification",
+  "feature_names": [
+    "Creatinine",
+    "Blood_Urea_Nitrogen",
+    "Sodium",
+    "Potassium",
+    "Hemoglobin",
+    "WBC",
+    "RBC",
+    "Hematocrit"
+  ],
+  "target_classes": [
+    "Chronic Kidney Disease",
+    "Normal",
+    "ckd"
+  ],
+  "n_classes": 3,
+  "test_accuracy": 0.95,
+  "test_f1_weighted": 0.9496,
+  "cv_f1_mean": 0.944,
+  "cv_f1_std": 0.0248,
+  "n_train_samples": 320,
+  "min_features_required": 2
+}

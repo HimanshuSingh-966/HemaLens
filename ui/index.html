@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HemaLens — Blood Report AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #080c14;
+    --surface:   #0d1420;
+    --surface2:  #121b2e;
+    --border:    rgba(92,183,255,0.12);
+    --accent:    #3b9eff;
+    --accent2:   #00e5c3;
+    --accent3:   #ff6b6b;
+    --accent4:   #f5a623;
+    --text:      #ddeeff;
+    --muted:     #5b7fa6;
+    --mono:      'DM Mono', monospace;
+    --sans:      'DM Sans', sans-serif;
+    --display:   'Syne', sans-serif;
+    --glow:      0 0 30px rgba(59,158,255,0.2);
+    --card-glow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15px;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,158,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,158,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: ''; position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border); padding: 20px 0;
+    position: sticky; top: 0; background: rgba(8,12,20,0.85);
+    backdrop-filter: blur(20px); z-index: 100;
+  }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; }
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--display); font-size: 22px; font-weight: 800;
+    color: #fff; text-decoration: none;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: var(--glow);
+  }
+  .badge {
+    font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 4px;
+    background: rgba(59,158,255,0.12); border: 1px solid rgba(59,158,255,0.25); color: var(--accent);
+  }
+  nav { display: flex; gap: 8px; }
+  .nav-btn {
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; transition: all 0.2s;
+    background: transparent; color: var(--muted);
+  }
+  .nav-btn:hover, .nav-btn.active {
+    background: rgba(59,158,255,0.1); border-color: rgba(59,158,255,0.2); color: var(--accent);
+  }
+
+  /* HERO */
+  .hero { padding: 80px 0 60px; text-align: center; animation: fadeUp 0.7s ease both; }
+  .hero-eyebrow { font-family: var(--mono); font-size: 12px; color: var(--accent2); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px; }
+  .hero h1 { font-family: var(--display); font-size: clamp(36px,5vw,64px); font-weight: 800; line-height: 1.05; color: #fff; margin-bottom: 20px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .hero p { font-size: 17px; color: var(--muted); max-width: 580px; margin: 0 auto 40px; line-height: 1.7; }
+  .stats-row { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin-bottom: 60px; animation: fadeUp 0.7s 0.2s ease both; }
+  .stat { text-align: center; }
+  .stat-value { font-family: var(--display); font-size: 28px; font-weight: 800; color: #fff; }
+  .stat-value span { color: var(--accent); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+  /* PANELS */
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; animation: fadeUp 0.7s 0.1s ease both; }
+  @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--card-glow); transition: border-color 0.2s; }
+  .panel:hover { border-color: rgba(59,158,255,0.25); }
+  .panel-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .panel-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .panel-title { font-family: var(--display); font-size: 15px; font-weight: 700; color: #fff; }
+  .panel-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .panel-body { padding: 24px; }
+
+  /* GENDER TOGGLE */
+  .gender-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .gender-btn {
+    flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-family: var(--sans); font-size: 13px; transition: all 0.2s;
+  }
+  .gender-btn.active { background: rgba(59,158,255,0.12); border-color: rgba(59,158,255,0.3); color: var(--accent); }
+
+  /* UPLOAD */
+  .upload-zone {
+    border: 2px dashed rgba(59,158,255,0.25); border-radius: 12px;
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    transition: all 0.25s; position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(59,158,255,0.05); box-shadow: var(--glow); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.7; }
+  .upload-title { font-family: var(--display); font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .upload-hint { font-size: 13px; color: var(--muted); }
+  .file-types { display: flex; gap: 6px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .file-tag { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); }
+
+  /* TEXTAREA */
+  textarea {
+    width: 100%; min-height: 180px; resize: vertical;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    color: var(--text); font-family: var(--mono); font-size: 13px; line-height: 1.6; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  textarea:focus { border-color: rgba(59,158,255,0.4); box-shadow: 0 0 0 3px rgba(59,158,255,0.1); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* MANUAL GRID */
+  .params-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .param-field label { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .param-input-wrap { position: relative; }
+  .param-input {
+    width: 100%; padding: 9px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 13px; outline: none;
+    transition: border-color 0.2s; -moz-appearance: textfield;
+  }
+  .param-input::-webkit-outer-spin-button, .param-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .param-input:focus { border-color: rgba(59,158,255,0.4); }
+  .param-input.abnormal-low  { border-color: rgba(59,158,255,0.6); background: rgba(59,158,255,0.06); }
+  .param-input.abnormal-high { border-color: rgba(255,107,107,0.6); background: rgba(255,107,107,0.06); }
+  .param-unit { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--muted); pointer-events: none; font-family: var(--mono); }
+
+  /* BUTTONS */
+  .btn-analyze {
+    width: 100%; padding: 16px;
+    background: linear-gradient(90deg, var(--accent), #1a7fd4);
+    border: none; border-radius: 12px;
+    color: #fff; font-family: var(--display); font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 20px; transition: all 0.25s;
+    position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-analyze::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent); transform: translateX(-100%); transition: transform 0.5s; }
+  .btn-analyze:hover::after { transform: translateX(100%); }
+  .btn-analyze:hover { box-shadow: 0 8px 30px rgba(59,158,255,0.4); transform: translateY(-1px); }
+  .btn-analyze:active { transform: translateY(0); }
+  .btn-analyze.loading { pointer-events: none; opacity: 0.7; }
+
+  /* RESULTS */
+  #results-area { animation: fadeUp 0.5s ease both; }
+  .result-hero {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 30px; display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 24px; margin-bottom: 20px; box-shadow: var(--card-glow);
+  }
+  .diagnosis-main { flex: 1; }
+  .diagnosis-label { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
+  .diagnosis-value { font-family: var(--display); font-size: 28px; font-weight: 800; color: #fff; line-height: 1.2; }
+  .diagnosis-value.normal  { color: var(--accent2); }
+  .diagnosis-value.warning { color: var(--accent4); }
+  .diagnosis-value.danger  { color: var(--accent3); }
+
+  /* CONFIDENCE RING */
+  .confidence-ring { width: 100px; height: 100px; position: relative; flex-shrink: 0; }
+  .confidence-ring svg { transform: rotate(-90deg); }
+  .ring-bg  { fill: none; stroke: var(--surface2); stroke-width: 8; }
+  .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-pct { font-family: var(--display); font-size: 20px; font-weight: 800; color: #fff; }
+  .ring-sub { font-size: 9px; color: var(--muted); font-family: var(--mono); }
+
+  /* SPECIALIST CARDS */
+  .specialists-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .specialist-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; box-shadow: var(--card-glow); transition: border-color 0.2s;
+  }
+  .specialist-card.active-card { border-color: rgba(59,158,255,0.3); }
+  .specialist-card.skipped-card { opacity: 0.45; }
+  .specialist-name { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .specialist-diag { font-family: var(--display); font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; line-height: 1.3; }
+  .specialist-diag.is-normal { color: var(--accent2); }
+  .specialist-conf { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .conf-bar { height: 3px; background: var(--surface2); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.8s ease; }
+
+  /* FLAGS */
+  .flags-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .flag-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; box-shadow: var(--card-glow); display: flex; gap: 14px; align-items: flex-start; transition: border-color 0.2s;
+  }
+  .flag-card:hover { border-color: rgba(59,158,255,0.25); }
+  .flag-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .flag-param { font-family: var(--display); font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .flag-values { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .flag-val { font-family: var(--mono); font-size: 18px; font-weight: 500; }
+  .flag-val.low  { color: var(--accent); }
+  .flag-val.high { color: var(--accent3); }
+  .flag-normal { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .severity-badge { display: inline-block; font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; margin-top: 6px; }
+  .sev-MILD     { background: rgba(59,158,255,0.12); color: var(--accent); border: 1px solid rgba(59,158,255,0.2); }
+  .sev-MODERATE { background: rgba(245,166,35,0.12); color: var(--accent4); border: 1px solid rgba(245,166,35,0.2); }
+  .sev-SEVERE   { background: rgba(255,107,107,0.12); color: var(--accent3); border: 1px solid rgba(255,107,107,0.2); }
+
+  /* RECOMMENDATIONS */
+  .recs-panel { background: var(--surface); border: 1px solid rgba(0,229,195,0.2); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
+  .recs-title { font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--accent2); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .rec-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.6; }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-arrow { color: var(--accent2); flex-shrink: 0; font-family: var(--mono); }
+
+  /* EXTRACTED TABLE */
+  .extracted-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+  .extracted-table th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  .extracted-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .extracted-table tr:last-child td { border-bottom: none; }
+  .extracted-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .val-normal { color: var(--accent2); }
+  .val-low    { color: var(--accent); }
+  .val-high   { color: var(--accent3); }
+
+  /* RISK BADGE */
+  .risk-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  .risk-NORMAL   { background: rgba(0,229,195,0.1); border: 1px solid rgba(0,229,195,0.2); color: var(--accent2); }
+  .risk-LOW      { background: rgba(59,158,255,0.1); border: 1px solid rgba(59,158,255,0.2); color: var(--accent); }
+  .risk-MODERATE { background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.2); color: var(--accent4); }
+  .risk-HIGH     { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.2); color: var(--accent3); }
+
+  /* ERROR TOAST */
+  .error-toast {
+    background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3);
+    border-radius: 10px; padding: 14px 18px; margin-top: 12px;
+    font-size: 13px; color: var(--accent3); display: none;
+  }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-text { font-family: var(--display); font-size: 16px; color: #fff; opacity: 0.4; }
+
+  /* MISC */
+  .spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  .section-heading { font-family: var(--display); font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .section-heading::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .tab-pills { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: 10px; margin-bottom: 20px; }
+  .tab-pill { flex: 1; padding: 8px 12px; border: none; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; font-family: var(--sans); font-size: 13px; font-weight: 500; transition: all 0.2s; text-align: center; }
+  .tab-pill.active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  footer { border-top: 1px solid var(--border); padding: 30px 0; text-align: center; color: var(--muted); font-size: 13px; margin-top: 60px; }
+  .disclaimer { background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.15); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: rgba(255,107,107,0.8); line-height: 1.6; }
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(59,158,255,0.3); border-radius: 3px; }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">🩸</div>
+      HemaLens <span class="badge">AI v2.0</span>
+    </a>
+    <nav>
+      <button class="nav-btn active" onclick="showSection('analyze')">Analyze</button>
+      <button class="nav-btn" onclick="showSection('about')">About</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <p class="hero-eyebrow">⬡ Diagnostic Pathology Intelligence</p>
+    <h1>Blood Reports,<br/><span>Decoded by AI.</span></h1>
+    <p>Upload a lab report — PDF, image, or paste raw text — and our NLP + ML pipeline extracts parameters, flags anomalies, and runs 5 specialist models instantly.</p>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">5</div><div class="stat-label">ML Specialists</div></div>
+      <div class="stat"><div class="stat-value">35<span>+</span></div><div class="stat-label">Parameters</div></div>
+      <div class="stat"><div class="stat-value">NLP</div><div class="stat-label">Extraction</div></div>
+      <div class="stat"><div class="stat-value">~1<span>s</span></div><div class="stat-label">Analysis</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="container" id="section-analyze">
+  <div class="main-grid">
+
+    <!-- LEFT: INPUT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(59,158,255,0.12)">📄</div>
+        <div>
+          <div class="panel-title">Upload Report</div>
+          <div class="panel-subtitle">PDF, image, or paste text</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <!-- GENDER -->
+        <div class="gender-row">
+          <button class="gender-btn active" id="gBtn-male"   onclick="setGender('male')">♂ Male</button>
+          <button class="gender-btn"        id="gBtn-female" onclick="setGender('female')">♀ Female</button>
+        </div>
+
+        <div class="tab-pills">
+          <button class="tab-pill active" onclick="switchTab('upload')">File Upload</button>
+          <button class="tab-pill"        onclick="switchTab('paste')">Paste Text</button>
+          <button class="tab-pill"        onclick="switchTab('manual')">Manual Entry</button>
+        </div>
+
+        <!-- UPLOAD TAB -->
+        <div id="tab-upload">
+          <div class="upload-zone" id="dropzone" ondragover="onDrag(event,true)" ondragleave="onDrag(event,false)" ondrop="onDrop(event)">
+            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" onchange="onFileSelect(event)"/>
+            <div class="upload-icon">📂</div>
+            <div class="upload-title" id="upload-title">Drop your lab report here</div>
+            <div class="upload-hint">or click to browse files</div>
+            <div class="file-types">
+              <span class="file-tag">PDF</span><span class="file-tag">PNG</span>
+              <span class="file-tag">JPG</span><span class="file-tag">TXT</span>
+            </div>
+          </div>
+          <button class="btn-analyze" id="uploadAnalyzeBtn" style="display:none" onclick="runFileAnalysis()">
+            <span>⚡ Run AI Diagnosis</span>
+          </button>
+          <div class="error-toast" id="upload-error"></div>
+        </div>
+
+        <!-- PASTE TAB -->
+        <div id="tab-paste" style="display:none">
+          <textarea id="reportText" placeholder="Paste your lab report text here...
+Example:
+Hemoglobin     : 10.2  g/dL
+WBC Count      : 11.8  K/µL
+Platelet Count : 210   K/µL
+Fasting Glucose: 126   mg/dL
+HbA1c          : 7.2   %"></textarea>
+          <button class="btn-analyze" onclick="runTextAnalysis()">
+            <span>🔍 Extract &amp; Analyze</span>
+          </button>
+          <div class="error-toast" id="paste-error"></div>
+        </div>
+
+        <!-- MANUAL TAB -->
+        <div id="tab-manual" style="display:none">
+          <div class="params-grid" id="params-grid"></div>
+          <button class="btn-analyze" onclick="runManualAnalysis()">
+            <span>⚡ Analyze Parameters</span>
+          </button>
+          <div class="error-toast" id="manual-error"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: EXTRACTED PARAMS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-icon" style="background:rgba(0,229,195,0.12)">🔬</div>
+        <div>
+          <div class="panel-title">Extracted Parameters</div>
+          <div class="panel-subtitle" id="params-subtitle">NLP-parsed values from your report</div>
+        </div>
+      </div>
+      <div class="panel-body" style="padding:0">
+        <div id="extracted-params-view">
+          <div class="empty-state">
+            <div class="empty-icon">🧬</div>
+            <div class="empty-text">Parameters appear here after extraction</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-area" style="display:none">
+    <div class="section-heading">Analysis Results</div>
+
+    <!-- Result hero -->
+    <div class="result-hero">
+      <div class="diagnosis-main">
+        <div class="diagnosis-label">CONDITIONS DETECTED</div>
+        <div class="diagnosis-value" id="diag-value">—</div>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <div class="risk-badge" id="risk-badge">—</div>
+          <div style="font-size:13px;color:var(--muted)" id="abnormal-count">—</div>
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:10px;line-height:1.6" id="result-summary"></div>
+      </div>
+      <div class="confidence-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="42"/>
+          <circle class="ring-fill" id="ring-fill" cx="50" cy="50" r="42"
+                  stroke="url(#ringGrad)" stroke-dasharray="263.9" stroke-dashoffset="263.9"/>
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#3b9eff"/>
+              <stop offset="100%" stop-color="#00e5c3"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-label">
+          <div class="ring-pct" id="conf-pct">—</div>
+          <div class="ring-sub">TOP MODEL</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Specialist breakdown -->
+    <div class="section-heading" id="specialists-heading" style="display:none">Specialist Models</div>
+    <div class="specialists-grid" id="specialists-grid"></div>
+
+    <!-- Abnormal flags -->
+    <div class="section-heading" id="flags-heading" style="display:none">Abnormal Parameters</div>
+    <div class="flags-grid" id="flags-grid"></div>
+
+    <!-- Recommendations -->
+    <div class="recs-panel" id="recs-panel" style="display:none">
+      <div class="recs-title">💡 Clinical Recommendations</div>
+      <div id="recs-list"></div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ <strong>Medical Disclaimer:</strong> This AI-generated analysis is for informational and research purposes only. It is NOT a substitute for professional medical diagnosis, advice, or treatment. Always consult a licensed healthcare provider.
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div class="container" id="section-about" style="display:none">
+  <div style="max-width:720px;margin:60px auto">
+    <div class="section-heading">About HemaLens</div>
+    <div class="panel" style="padding:32px">
+      <p style="color:var(--muted);line-height:1.8;margin-bottom:20px">
+        HemaLens is a full-stack Blood Report Analysis system combining NLP parameter extraction with 5 specialist ML models — each trained on domain-specific clinical datasets with 95–99% F1 scores.
+      </p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px">
+        <div>
+          <div style="font-family:var(--display);font-weight:700;color:#fff;margin-bottom:8px">🧠 Specialist Models</div>
+          <ul style="color:var(--muted);font-size:13px;line-height:2;list-style:none">
+            <li>→ Anemia (F1: 98.4%)</li><li>→ Diabetes (F1: 96.9%)</li>
+            <li>→ Kidney Disease (F1: 95.0%)</li><li>→ Liver Disease (F1: 99.6%)</li>
+            <li>→ Thyroid (F1: 89.1%)</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-family:var(--display);font-weight:700;color:#fff;margin-bottom:8px">📝 NLP Pipeline</div>
+          <ul style="color:var(--muted);font-size:13px;line-height:2;list-style:none">
+            <li>→ Regex pattern matching</li><li>→ spaCy NER</li>
+            <li>→ PDF (pdfplumber)</li><li>→ OCR (pytesseract)</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-family:var(--display);font-weight:700;color:#fff;margin-bottom:8px">📊 Training Data</div>
+          <ul style="color:var(--muted);font-size:13px;line-height:2;list-style:none">
+            <li>→ Diabetes: 100k rows</li><li>→ Liver: 30k rows</li>
+            <li>→ Kidney: clinical CKD dataset</li><li>→ Thyroid: 9k rows</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-family:var(--display);font-weight:700;color:#fff;margin-bottom:8px">🔬 Parameters</div>
+          <ul style="color:var(--muted);font-size:13px;line-height:2;list-style:none">
+            <li>→ CBC (14 params)</li><li>→ Metabolic panel</li>
+            <li>→ Liver / Kidney / Lipids</li><li>→ Thyroid / HbA1c / Iron</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>HemaLens © 2024 — AI-powered Blood Report Analysis System</p>
+    <p style="margin-top:8px;font-size:12px">For research and educational use only.</p>
+  </div>
+</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8000/api/v1"
+  : `${window.location.origin}/api/v1`;
+
+// ─────────────────────────────────────────────
+// REFERENCE RANGES (for local param table only)
+// ─────────────────────────────────────────────
+const REF = {
+  Hemoglobin:{male:[13.5,17.5],female:[12.0,15.5],unit:"g/dL"},
+  RBC:{male:[4.5,5.9],female:[4.1,5.1],unit:"M/µL"},
+  WBC:{both:[4.5,11.0],unit:"K/µL"},
+  Platelets:{both:[150,400],unit:"K/µL"},
+  Hematocrit:{male:[41,53],female:[36,46],unit:"%"},
+  MCV:{both:[80,100],unit:"fL"},
+  MCH:{both:[27,33],unit:"pg"},
+  MCHC:{both:[32,36],unit:"g/dL"},
+  Neutrophils:{both:[40,70],unit:"%"},
+  Lymphocytes:{both:[20,40],unit:"%"},
+  Monocytes:{both:[2,10],unit:"%"},
+  Eosinophils:{both:[1,6],unit:"%"},
+  Basophils:{both:[0,1],unit:"%"},
+  Glucose:{both:[70,100],unit:"mg/dL"},
+  HbA1c:{both:[4.0,5.6],unit:"%"},
+  Creatinine:{male:[0.7,1.2],female:[0.5,1.0],unit:"mg/dL"},
+  Blood_Urea_Nitrogen:{both:[7,25],unit:"mg/dL"},
+  Sodium:{both:[136,145],unit:"mEq/L"},
+  Potassium:{both:[3.5,5.0],unit:"mEq/L"},
+  Calcium:{both:[8.5,10.5],unit:"mg/dL"},
+  Total_Protein:{both:[6.0,8.3],unit:"g/dL"},
+  Albumin:{both:[3.5,5.0],unit:"g/dL"},
+  Total_Bilirubin:{both:[0.2,1.2],unit:"mg/dL"},
+  Direct_Bilirubin:{both:[0.0,0.3],unit:"mg/dL"},
+  ALT:{male:[7,56],female:[7,45],unit:"U/L"},
+  AST:{both:[10,40],unit:"U/L"},
+  Alkaline_Phosphatase:{both:[44,147],unit:"U/L"},
+  TSH:{both:[0.4,4.0],unit:"mIU/L"},
+  T3:{both:[80,200],unit:"ng/dL"},
+  T4:{both:[5.0,12.0],unit:"µg/dL"},
+  Iron:{male:[65,175],female:[50,170],unit:"µg/dL"},
+  Ferritin:{male:[20,500],female:[20,200],unit:"ng/mL"},
+  Cholesterol:{both:[0,200],unit:"mg/dL"},
+  HDL:{male:[40,60],female:[50,60],unit:"mg/dL"},
+  LDL:{both:[0,130],unit:"mg/dL"},
+  Triglycerides:{both:[0,150],unit:"mg/dL"},
+  BMI:{both:[18.5,24.9],unit:"kg/m²"},
+  Age:{both:[0,120],unit:"yrs"},
+};
+const PARAM_LIST = Object.keys(REF);
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+let currentGender = "male";
+let pendingFile   = null;   // File object waiting for analysis
+
+// ─────────────────────────────────────────────
+// GENDER
+// ─────────────────────────────────────────────
+function setGender(g) {
+  currentGender = g;
+  document.getElementById("gBtn-male").classList.toggle("active", g==="male");
+  document.getElementById("gBtn-female").classList.toggle("active", g==="female");
+}
+
+// ─────────────────────────────────────────────
+// SECTION / TAB
+// ─────────────────────────────────────────────
+function showSection(s) {
+  document.getElementById("section-analyze").style.display = s==="analyze" ? "" : "none";
+  document.getElementById("section-about").style.display   = s==="about"   ? "" : "none";
+  document.querySelectorAll(".nav-btn").forEach((b,i)=>{
+    b.classList.toggle("active", (i===0&&s==="analyze")||(i===1&&s==="about"));
+  });
+}
+
+function switchTab(t) {
+  ["upload","paste","manual"].forEach(id=>{
+    document.getElementById("tab-"+id).style.display = id===t ? "" : "none";
+  });
+  document.querySelectorAll(".tab-pill").forEach((b,i)=>{
+    b.classList.toggle("active", ["upload","paste","manual"][i]===t);
+  });
+  if(t==="manual") buildManualGrid();
+}
+
+// ─────────────────────────────────────────────
+// MANUAL GRID
+// ─────────────────────────────────────────────
+function buildManualGrid() {
+  const grid = document.getElementById("params-grid");
+  if(grid.children.length) return;
+  PARAM_LIST.forEach(p=>{
+    const rr = REF[p]; const unit = rr.unit||"";
+    const div = document.createElement("div");
+    div.className = "param-field";
+    div.innerHTML = `<label>${p.replace(/_/g," ")}</label>
+      <div class="param-input-wrap">
+        <input class="param-input" type="number" step="any" id="in_${p}" placeholder="—" oninput="validateInput('${p}')"/>
+        <span class="param-unit">${unit}</span>
+      </div>`;
+    grid.appendChild(div);
+  });
+}
+
+function validateInput(param) {
+  const el = document.getElementById("in_"+param);
+  const v  = parseFloat(el.value);
+  const rr = getRange(param);
+  el.classList.remove("abnormal-low","abnormal-high");
+  if(!isNaN(v) && rr) {
+    if(v < rr[0]) el.classList.add("abnormal-low");
+    if(v > rr[1]) el.classList.add("abnormal-high");
+  }
+}
+
+function getRange(param) {
+  const rr = REF[param]; if(!rr) return null;
+  return rr.both || rr[currentGender] || rr.male || null;
+}
+
+// ─────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────
+function onDrag(e, over) {
+  e.preventDefault();
+  document.getElementById("dropzone").classList.toggle("drag-over", over);
+}
+function onDrop(e) {
+  e.preventDefault(); onDrag(e, false);
+  const f = e.dataTransfer.files[0]; if(f) stageFile(f);
+}
+function onFileSelect(e) {
+  if(e.target.files[0]) stageFile(e.target.files[0]);
+}
+function stageFile(file) {
+  pendingFile = file;
+  document.getElementById("upload-title").textContent = "📄 " + file.name;
+  document.getElementById("uploadAnalyzeBtn").style.display = "flex";
+  hideError("upload");
+}
+
+// ─────────────────────────────────────────────
+// ERROR HELPERS
+// ─────────────────────────────────────────────
+function showError(tab, msg) {
+  const el = document.getElementById(tab+"-error");
+  if(el) { el.textContent = "⚠️ " + msg; el.style.display = "block"; }
+}
+function hideError(tab) {
+  const el = document.getElementById(tab+"-error");
+  if(el) el.style.display = "none";
+}
+
+function setBtnLoading(btn, loading) {
+  if(loading) {
+    btn.classList.add("loading");
+    btn.dataset.orig = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner"></div><span>Analyzing...</span>';
+  } else {
+    btn.classList.remove("loading");
+    btn.innerHTML = btn.dataset.orig || btn.innerHTML;
+  }
+}
+
+// ─────────────────────────────────────────────
+// API CALL: FILE UPLOAD → /analyze/file
+// ─────────────────────────────────────────────
+async function runFileAnalysis() {
+  if(!pendingFile) return;
+  hideError("upload");
+  const btn = document.getElementById("uploadAnalyzeBtn");
+  setBtnLoading(btn, true);
+
+  const form = new FormData();
+  form.append("file", pendingFile);
+  form.append("gender", currentGender);
+
+  try {
+    const res  = await fetch(`${API_BASE}/analyze/file?gender=${currentGender}`, {method:"POST", body:form});
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || `Server error ${res.status}`);
+    renderExtractedParams(data.params);
+    renderResults(data);
+    document.getElementById("results-area").style.display = "";
+    document.getElementById("results-area").scrollIntoView({behavior:"smooth",block:"start"});
+  } catch(e) {
+    showError("upload", e.message);
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
+// ─────────────────────────────────────────────
+// API CALL: PASTE TEXT → /extract/text then /analyze/params
+// ─────────────────────────────────────────────
+async function runTextAnalysis() {
+  const text = document.getElementById("reportText").value.trim();
+  if(!text) { showError("paste","Please paste report text first."); return; }
+  hideError("paste");
+  const btn = document.querySelector("#tab-paste .btn-analyze");
+  setBtnLoading(btn, true);
+
+  try {
+    // Step 1: extract params from text
+    const extRes  = await fetch(`${API_BASE}/extract/text`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({text})
+    });
+    const extData = await extRes.json();
+    if(!extRes.ok) throw new Error(extData.detail || "Extraction failed");
+    if(!extData.count) throw new Error("No parameters could be extracted. Check your text format.");
+
+    renderExtractedParams(extData.params);
+
+    // Step 2: run specialist analysis on extracted params
+    const anaRes  = await fetch(`${API_BASE}/analyze/params`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({gender: currentGender, params: extData.params})
+    });
+    const anaData = await anaRes.json();
+    if(!anaRes.ok) throw new Error(anaData.detail || "Analysis failed");
+
+    renderResults(anaData);
+    document.getElementById("results-area").style.display = "";
+    document.getElementById("results-area").scrollIntoView({behavior:"smooth",block:"start"});
+  } catch(e) {
+    showError("paste", e.message);
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
+// ─────────────────────────────────────────────
+// API CALL: MANUAL PARAMS → /analyze/params
+// ─────────────────────────────────────────────
+async function runManualAnalysis() {
+  const params = {};
+  PARAM_LIST.forEach(p=>{
+    const el = document.getElementById("in_"+p);
+    if(el && el.value !== "") params[p] = parseFloat(el.value);
+  });
+  if(!Object.keys(params).length) { showError("manual","Enter at least one parameter."); return; }
+  hideError("manual");
+  const btn = document.querySelector("#tab-manual .btn-analyze");
+  setBtnLoading(btn, true);
+
+  try {
+    const res  = await fetch(`${API_BASE}/analyze/params`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({gender: currentGender, params})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || "Analysis failed");
+    renderExtractedParams(params);
+    renderResults(data);
+    document.getElementById("results-area").style.display = "";
+    document.getElementById("results-area").scrollIntoView({behavior:"smooth",block:"start"});
+  } catch(e) {
+    showError("manual", e.message);
+  } finally {
+    setBtnLoading(btn, false);
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER: EXTRACTED PARAMS TABLE
+// ─────────────────────────────────────────────
+function renderExtractedParams(params) {
+  const wrap = document.getElementById("extracted-params-view");
+  document.getElementById("params-subtitle").textContent =
+    `${Object.keys(params).length} parameters found`;
+
+  if(!params || !Object.keys(params).length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">No parameters found</div></div>`;
+    return;
+  }
+  let rows = "";
+  for(const [p,v] of Object.entries(params)) {
+    const rr   = getRange(p);
+    const unit = REF[p]?.unit || "";
+    let cls="val-normal", status="Normal";
+    if(rr) {
+      if(v < rr[0])      { cls="val-low";  status="Low↓"; }
+      else if(v > rr[1]) { cls="val-high"; status="High↑"; }
+    }
+    rows += `<tr>
+      <td style="color:var(--text)">${p.replace(/_/g," ")}</td>
+      <td class="${cls}">${v} <span style="font-size:10px;opacity:0.6">${unit}</span></td>
+      <td style="color:var(--muted);font-size:11px">${rr ? rr[0]+"–"+rr[1] : "—"}</td>
+      <td><span style="font-size:11px" class="${cls}">${status}</span></td>
+    </tr>`;
+  }
+  wrap.innerHTML = `
+    <table class="extracted-table">
+      <thead><tr><th>Parameter</th><th>Value</th><th>Normal Range</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─────────────────────────────────────────────
+// RENDER: FULL RESULTS FROM API RESPONSE
+// ─────────────────────────────────────────────
+function renderResults(r) {
+  // ── Diagnosis hero ──
+  const conditions = r.detected_conditions || [];
+  const diagText   = conditions.length ? conditions.join(" + ") : "Normal Blood Profile";
+  const dv = document.getElementById("diag-value");
+  dv.textContent = diagText;
+  dv.className   = "diagnosis-value " +
+    (r.risk_level==="HIGH"?"danger":r.risk_level==="MODERATE"?"warning":r.risk_level==="LOW"?"warning":"normal");
+
+  // Risk badge
+  const rb = document.getElementById("risk-badge");
+  rb.textContent = r.risk_level==="NORMAL" ? "✓ Normal" : `⚑ ${r.risk_level} RISK`;
+  rb.className   = `risk-badge risk-${r.risk_level}`;
+
+  // Abnormal count
+  document.getElementById("abnormal-count").textContent =
+    `${r.total_abnormal} abnormal parameter${r.total_abnormal!==1?"s":""}`;
+
+  // Summary
+  document.getElementById("result-summary").textContent = r.summary || "";
+
+  // Confidence ring — use highest confidence across active specialists
+  const activeResults = (r.specialist_results || []).filter(s=>s.active && s.confidence);
+  const topConf = activeResults.length
+    ? Math.max(...activeResults.map(s=>s.confidence))
+    : 0.5;
+  const pct = Math.round(topConf * 100);
+  document.getElementById("conf-pct").textContent = pct + "%";
+  const offset = 263.9 - (263.9 * topConf);
+  setTimeout(()=>{ document.getElementById("ring-fill").style.strokeDashoffset = offset; }, 100);
+
+  // ── Specialist cards ──
+  const specGrid = document.getElementById("specialists-grid");
+  const specHead = document.getElementById("specialists-heading");
+  specGrid.innerHTML = "";
+  const allSpecs = [...(r.specialist_results||[]), ...(r.skipped_specialists||[])];
+  if(allSpecs.length) {
+    specHead.style.display = "flex";
+    allSpecs.forEach(s=>{
+      const isNorm    = s.active && s.diagnosis && s.diagnosis.toLowerCase().includes("normal");
+      const isSkipped = !s.active;
+      const conf      = s.confidence != null ? Math.round(s.confidence*100) : null;
+      const card = document.createElement("div");
+      card.className = `specialist-card ${isSkipped?"skipped-card":"active-card"}`;
+      card.innerHTML = `
+        <div class="specialist-name">${s.specialist} ${isSkipped?"· skipped":s.model_f1?"· F1 "+Math.round(s.model_f1*100)+"%":""}</div>
+        <div class="specialist-diag ${isNorm?"is-normal":""}">${s.diagnosis || s.reason || "—"}</div>
+        ${conf!=null ? `<div class="specialist-conf">${conf}% confidence</div>
+        <div class="conf-bar"><div class="conf-fill" style="width:${conf}%"></div></div>` : ""}`;
+      specGrid.appendChild(card);
+    });
+  } else {
+    specHead.style.display = "none";
+  }
+
+  // ── Abnormal flags ──
+  const flagGrid = document.getElementById("flags-grid");
+  const flagHead = document.getElementById("flags-heading");
+  flagGrid.innerHTML = "";
+  const flags = r.abnormal_flags || [];
+  if(flags.length) {
+    flagHead.style.display = "flex";
+    flags.forEach(f=>{
+      const icon   = f.status==="LOW" ? "🔵" : "🔴";
+      const valCls = f.status==="LOW" ? "low" : "high";
+      const card   = document.createElement("div");
+      card.className = "flag-card";
+      card.innerHTML = `
+        <div class="flag-icon">${icon}</div>
+        <div>
+          <div class="flag-param">${f.parameter.replace(/_/g," ")}</div>
+          <div class="flag-values">
+            <span class="flag-val ${valCls}">${f.value}</span>
+            <span class="flag-normal">Normal: ${f.normal_range}</span>
+          </div>
+          <span class="severity-badge sev-${f.severity}">${f.severity}</span>
+        </div>`;
+      flagGrid.appendChild(card);
+    });
+  } else {
+    flagHead.style.display = "none";
+  }
+
+  // ── Recommendations ──
+  const recs = r.recommendations || [];
+  const recsList  = document.getElementById("recs-list");
+  const recsPanel = document.getElementById("recs-panel");
+  recsList.innerHTML = recs.map(rec=>`
+    <div class="rec-item"><span class="rec-arrow">→</span><span>${rec}</span></div>`).join("");
+  recsPanel.style.display = recs.length ? "" : "none";
+}
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+window.onload = () => { buildManualGrid(); };
+</script>
+</body>
+</html>

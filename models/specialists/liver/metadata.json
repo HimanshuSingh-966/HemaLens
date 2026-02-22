@@ -1,0 +1,26 @@
+{
+  "specialist": "liver",
+  "description": "Liver function panel classification (30k rows)",
+  "feature_names": [
+    "Total_Bilirubin",
+    "Direct_Bilirubin",
+    "ALT",
+    "AST",
+    "Alkaline_Phosphatase",
+    "Total_Protein",
+    "Albumin",
+    "Albumin_Globulin_Ratio",
+    "Age"
+  ],
+  "target_classes": [
+    "Liver Disease",
+    "Normal"
+  ],
+  "n_classes": 2,
+  "test_accuracy": 0.9961,
+  "test_f1_weighted": 0.9961,
+  "cv_f1_mean": 0.9958,
+  "cv_f1_std": 0.0007,
+  "n_train_samples": 24552,
+  "min_features_required": 3
+}

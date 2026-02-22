@@ -1,0 +1,32 @@
+{
+  "specialist": "anemia",
+  "description": "CBC-based anemia classification",
+  "feature_names": [
+    "Hemoglobin",
+    "RBC",
+    "WBC",
+    "Platelets",
+    "Hematocrit",
+    "MCV",
+    "MCH",
+    "MCHC"
+  ],
+  "target_classes": [
+    "Healthy",
+    "Iron deficiency anemia",
+    "Leukemia",
+    "Leukemia with thrombocytopenia",
+    "Macrocytic anemia",
+    "Normocytic hypochromic anemia",
+    "Normocytic normochromic anemia",
+    "Other microcytic anemia",
+    "Thrombocytopenia"
+  ],
+  "n_classes": 9,
+  "test_accuracy": 0.9844,
+  "test_f1_weighted": 0.9837,
+  "cv_f1_mean": 0.9831,
+  "cv_f1_std": 0.005,
+  "n_train_samples": 1024,
+  "min_features_required": 3
+}
