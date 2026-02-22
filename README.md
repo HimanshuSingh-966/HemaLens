@@ -1,128 +1,168 @@
-# Blood Report Analysis System — Setup & Usage
+# HemaLens — AI Blood Report Analysis
+
+> Upload a lab report. Get instant diagnostic insights from 5 specialist ML models.
+
+**Live Demo:** [https://hemalens.netlify.app](https://hemalens.netlify.app) <!-- update with your Netlify URL -->  
+**API:** [https://hemalens-api.onrender.com/docs](https://hemalens-api.onrender.com/docs) <!-- update with your Render URL -->
+
+---
+
+## What It Does
+
+HemaLens extracts blood parameters from lab reports (PDF, image, or text) using an NLP pipeline, then runs them through 5 independently trained specialist ML models — one per disease domain.
+
+| Specialist | F1 Score | Dataset Size | Detects |
+|---|---|---|---|
+| Anemia | 98.4% | 1,500 rows | Iron deficiency, thalassemia, aplastic, sickle cell |
+| Diabetes | 96.9% | 100,000 rows | Diabetes mellitus, pre-diabetes |
+| Kidney | 95.0% | 400 rows | Chronic kidney disease |
+| Liver | 99.6% | 30,691 rows | Liver disease |
+| Thyroid | 89.1% | 9,172 rows | Hyperthyroidism, hypothyroidism |
+
+---
 
 ## Project Structure
+
 ```
-blood_report_project/
-├── ui/
-│   └── index.html          # Full UI (open in browser directly)
+HemaLens/
+├── api/
+│   ├── main.py                  # FastAPI app + CORS + static serving
+│   ├── routes.py                # All API endpoints
+│   └── schemas.py               # Pydantic request/response models
 ├── ml/
-│   ├── train.py            # Training pipeline
-│   └── inference.py        # Inference & prediction
+│   ├── config.py                # Reference ranges + app config
+│   ├── inference.py             # Reference range checker + legacy fallback
+│   ├── specialist_inference.py  # Multi-specialist inference engine
+│   └── train_specialists.py    # Training pipeline (run locally only)
 ├── nlp/
-│   └── extractor.py        # NLP parameter extraction
-├── data/                   # Place your dataset CSV here
-│   └── diagnostic_pathology.csv
-├── models/                 # Auto-created during training
-├── results/                # Auto-created during training
+│   ├── extractor.py             # PDF / image / text parameter extraction
+│   └── aliases.py               # Lab label → canonical name mapping
+├── ui/
+│   └── index.html               # Frontend (single file, no build step)
+├── models/
+│   └── specialists/             # Trained .pkl models (committed to git)
+│       ├── anemia/
+│       ├── diabetes/
+│       ├── kidney/
+│       ├── liver/
+│       └── thyroid/
+├── data/
+│   └── raw/                     # Training CSVs — local only, not committed
+├── .env.example                 # Environment variable template
+├── render.yaml                  # Render deployment config
 └── requirements.txt
 ```
 
 ---
 
-## Installation
+## Local Development
+
+### 1. Install dependencies
 
 ```bash
-pip install pandas numpy scikit-learn xgboost lightgbm \
-            matplotlib seaborn joblib \
-            pdfplumber pytesseract Pillow \
-            spacy
+pip install -r requirements.txt
 python -m spacy download en_core_web_sm
 ```
 
----
+### 2. Configure environment
 
-## Usage
-
-### 1. Training
 ```bash
-cd ml
-# Edit DATA_PATH and TARGET_COL in train.py to match your dataset
-python train.py
-```
-Outputs:
-- `models/best_model.pkl` — Best performing model
-- `models/metadata.json` — Feature names & class labels
-- `results/feature_importance.png`
-- `results/confusion_matrix.png`
-- `results/model_comparison.json`
-
-### 2. Inference — Single Sample
-```bash
-python inference.py single \
-  --params '{"Hemoglobin":10.2,"WBC":11.8,"Glucose":126,"HbA1c":7.2}' \
-  --gender male
+cp .env.example .env
+# defaults work out of the box for local dev
 ```
 
-### 3. Inference — Batch CSV
+### 3. Run the API
+
 ```bash
-python inference.py batch --input data/test.csv --output results/predictions.csv
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. NLP Extraction
-```bash
-# From text file
-python nlp/extractor.py --file report.txt
-
-# From PDF
-python nlp/extractor.py --file report.pdf --output extracted.json
-
-# From raw text
-python nlp/extractor.py --text "Hemoglobin: 10.2 g/dL, WBC: 11.8, HbA1c: 7.2"
-
-# Demo mode (no args)
-python nlp/extractor.py
-```
-
-### 5. UI
-Open `ui/index.html` in any browser. No server required.
-For full PDF/image support, connect to the Python FastAPI backend (see below).
+API docs: `http://localhost:8000/docs`  
+UI: `http://localhost:8000/`
 
 ---
 
-## Recommended Datasets
+## API Endpoints
 
-| Dataset | Source | Best For |
-|---------|--------|----------|
-| Diagnostic Pathology Test Results | Kaggle: pareshbadnore | Primary (CBC + metabolic) |
-| Laboratory Test Results – Anonymized | Kaggle: pinuto | Complementary real-world labs |
-| Disease Symptoms & Patient Profile | Kaggle: uom190346a | Symptom + lab fusion |
-| MIMIC-III Clinical Data | PhysioNet | ICU/clinical (requires credentialing) |
-| UK Biobank Blood Panel | UK Biobank | Large population study |
-| OpenMRS Demo Data | OpenMRS | EHR integration testing |
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/v1/analyze/file` | Upload PDF/image/txt → NLP extract → all specialists |
+| POST | `/api/v1/analyze/params` | Submit params as JSON → all specialists |
+| POST | `/api/v1/extract/text` | NLP extraction only, no diagnosis |
+| GET | `/api/v1/specialists` | List trained specialist models |
+| GET | `/api/v1/reference-ranges` | Normal ranges for all parameters |
+| GET | `/api/v1/health` | Health check |
+
+### Quick test
+
+```bash
+curl -X POST https://your-render-url.onrender.com/api/v1/analyze/params \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gender": "male",
+    "params": {
+      "Hemoglobin": 10.2, "WBC": 11.8, "Glucose": 126,
+      "HbA1c": 7.2, "TSH": 0.1, "Creatinine": 1.8
+    }
+  }'
+```
 
 ---
 
-## FastAPI Backend Integration (Optional)
+## Retraining
 
-```python
-from fastapi import FastAPI, File, UploadFile
-from nlp.extractor import extract_from_file
-from ml.inference import predict_single
-import tempfile, os
+Datasets are not committed to the repo. Download from Kaggle and place in `data/raw/`:
 
-app = FastAPI()
+| File | Kaggle Dataset |
+|---|---|
+| `anemia.csv` | ehababoelnaga/anemia-types-classification |
+| `diabetes.csv` | iammustafatz/diabetes-prediction-dataset |
+| `liver.csv` | abhi8923shriv/liver-disease-patient-dataset |
+| `kidney.csv` | mansoordaku/ckdisease |
+| `thyroid.csv` | emmanuelfwerr/thyroid-disease-data |
 
-@app.post("/analyze")
-async def analyze(file: UploadFile = File(...), gender: str = "male"):
-    with tempfile.NamedTemporaryFile(suffix=os.path.splitext(file.filename)[1], delete=False) as tmp:
-        tmp.write(await file.read())
-        tmp_path = tmp.name
-    params    = extract_from_file(tmp_path)
-    result    = predict_single(params, gender)
-    os.unlink(tmp_path)
-    return {"params": params, "result": result}
+```bash
+# Retrain all
+python ml/train_specialists.py
+
+# Retrain one
+python ml/train_specialists.py --only thyroid
 ```
-
-Run: `uvicorn main:app --reload`
 
 ---
 
-## Notes on Dataset Column Mapping
+## Deployment
 
-If the Kaggle dataset uses different column names, edit `train.py`:
-```python
-TARGET_COL = "Diagnosis"  # Change to your actual target column name
+### Backend → Render
+
+1. Push repo to GitHub — models are committed (~7.5MB total, no LFS needed)
+2. Go to [render.com](https://render.com) → New → Web Service
+3. Connect your GitHub repo — Render auto-detects `render.yaml`
+4. Deploy — API live at `https://your-app.onrender.com`
+
+### Frontend → Netlify
+
+1. Go to [app.netlify.com/drop](https://app.netlify.com/drop) and drag `ui/index.html`
+2. Update the `API_BASE` in `ui/index.html` to point to your Render URL:
+
+```js
+// ui/index.html — top of <script> block
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://localhost:8000/api/v1"
+  : "https://your-render-url.onrender.com/api/v1";  // ← replace this
 ```
 
-The extractor and inference pipeline are column-name agnostic and rely on
-the parameter aliases defined in `PARAMETER_ALIASES` (nlp/extractor.py).
+---
+
+## Tech Stack
+
+- **ML:** XGBoost, scikit-learn (pipeline, imputer, scaler)
+- **NLP:** Regex, spaCy NER, pdfplumber, pytesseract
+- **API:** FastAPI, Pydantic v2, uvicorn
+- **Frontend:** Vanilla HTML/CSS/JS — no framework, no build step
+
+---
+
+## Medical Disclaimer
+
+This system is for informational and research purposes only. It is **not** a substitute for professional medical diagnosis, advice, or treatment. Always consult a licensed healthcare provider.
