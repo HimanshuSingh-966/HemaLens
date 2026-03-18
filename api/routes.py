@@ -20,6 +20,7 @@ from fastapi import APIRouter, File, UploadFile, Query, HTTPException, Body
 from fastapi.responses import JSONResponse
 
 from api.schemas import (
+    TTSRequest,
     ParamsRequest, SpecialistAnalyzeResponse, SpecialistResult,
     ExtractResponse, ReferenceRangesResponse, HealthResponse,
     AbnormalFlag, SpecialistsListResponse,
@@ -242,3 +243,78 @@ def health():
         specialists_trained=trained,
         version="2.0.0",
     )
+
+
+# ─────────────────────────────────────────────────────────────
+# POST /tts
+# ─────────────────────────────────────────────────────────────
+@router.post(
+    "/tts",
+    summary="Convert diagnosis result to spoken audio via Sarvam AI TTS",
+    response_class=JSONResponse,
+)
+async def text_to_speech(body: "TTSRequest"):
+    from fastapi.responses import Response
+    from api.narrator import narrate
+    from api.sarvam import translate_text, text_to_speech as sarvam_tts, LANGUAGE_CODES
+
+    # Validate language
+    lang = body.language.lower()
+    if lang not in LANGUAGE_CODES:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported language '{lang}'. Supported: {', '.join(LANGUAGE_CODES.keys())}"
+        )
+
+    # Step 1 — Generate natural English sentences from result JSON
+    english_text = narrate(body.result, mode=body.mode)
+
+    # Step 2 — Translate to target language (skip if English)
+    spoken_text = translate_text(english_text, lang)
+
+    # Step 3 — Convert to speech
+    audio_bytes = sarvam_tts(spoken_text, lang, body.mode)
+
+    if audio_bytes is None:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail="Sarvam TTS unavailable. Check SARVAM_API_KEY environment variable."
+        )
+
+    return Response(
+        content=audio_bytes,
+        media_type="audio/wav",
+        headers={"Content-Disposition": "inline; filename=hemalens_result.wav"}
+    )
+
+
+# ─────────────────────────────────────────────────────────────
+# POST /narrate
+# Returns the text that would be spoken — useful for debugging
+# and for displaying on-screen alongside audio
+# ─────────────────────────────────────────────────────────────
+@router.post(
+    "/narrate",
+    summary="Get the spoken text for a diagnosis result (no audio — text only)",
+)
+async def narrate_text(body: "TTSRequest"):
+    from api.narrator import narrate
+    from api.sarvam import translate_text, LANGUAGE_CODES
+
+    lang = body.language.lower()
+    english_text = narrate(body.result, mode=body.mode)
+
+    if lang != "english" and lang in LANGUAGE_CODES:
+        translated = translate_text(english_text, lang)
+    else:
+        translated = english_text
+
+    return {
+        "mode":          body.mode,
+        "language":      lang,
+        "english_text":  english_text,
+        "spoken_text":   translated,
+        "char_count":    len(translated),
+    }

@@ -178,6 +178,19 @@ class SpecialistsListResponse(BaseModel):
 # RESPONSE — HEALTH
 # ─────────────────────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────────────────────
+# REQUEST — TTS
+# ─────────────────────────────────────────────────────────────
+
+class TTSRequest(BaseModel):
+    """Request body for POST /tts"""
+    result:   Dict[str, Any] = Field(..., description="Full analysis result JSON from /analyze endpoints")
+    language: str            = Field(default="hindi", description="Target language: hindi, tamil, telugu, kannada, malayalam, bengali, marathi, gujarati, punjabi, english")
+    mode:     str            = Field(default="patient", pattern="^(patient|clinical)$", description="patient = simple language, clinical = technical summary")
+
+
+
 class HealthResponse(BaseModel):
     status:              str       = Field(..., description="ok when running")
     model_loaded:        bool      = Field(..., description="True if at least one specialist is ready")
