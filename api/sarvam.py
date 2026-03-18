@@ -37,12 +37,12 @@ LANGUAGE_CODES = {
     "english":   "en-IN",
 }
 
-# Sarvam TTS speaker voices
+# Sarvam TTS speaker voices (Bulbul v3)
 # patient mode → warm, clear, calm voice
 # clinical mode → neutral, professional voice
 SPEAKERS = {
-    "patient":  "meera",   # warm female voice
-    "clinical": "amol",    # neutral male voice
+    "patient":  "priya",    # warm female voice
+    "clinical": "aditya",   # neutral male voice
 }
 
 
@@ -76,9 +76,9 @@ def translate_text(text: str, target_language: str) -> str:
                 "Content-Type": "application/json",
             },
             json={
-                "input":           text,
-                "source_language": "en-IN",
-                "target_language": lang_code,
+                "input":           text[:1000],
+                "source_language_code": "en-IN",
+                "target_language_code": lang_code,
                 "speaker_gender":  "Female",
                 "mode":            "formal",
                 "enable_preprocessing": True,
@@ -87,6 +87,10 @@ def translate_text(text: str, target_language: str) -> str:
         )
         response.raise_for_status()
         return response.json().get("translated_text", text)
+    except requests.exceptions.HTTPError as e:
+        body = e.response.text if e.response is not None else "no body"
+        print(f"⚠️  Sarvam translate error: {e} — body: {body} — falling back to English")
+        return text
     except Exception as e:
         print(f"⚠️  Sarvam translate error: {e} — falling back to English")
         return text
@@ -111,8 +115,8 @@ def text_to_speech(text: str, language: str, mode: str = "patient") -> Optional[
     lang_code = LANGUAGE_CODES.get(language.lower(), "hi-IN")
     speaker   = SPEAKERS.get(mode, "meera")
 
-    # Sarvam TTS has a ~500 char limit per request — split if needed
-    chunks = _split_text(text, max_chars=490)
+    # Sarvam TTS v3 has a ~2500 char limit per request — split if needed
+    chunks = _split_text(text, max_chars=2400)
     audio_parts = []
 
     for chunk in chunks:
@@ -124,15 +128,12 @@ def text_to_speech(text: str, language: str, mode: str = "patient") -> Optional[
                     "Content-Type": "application/json",
                 },
                 json={
-                    "inputs":          [chunk],
-                    "target_language": lang_code,
-                    "speaker":         speaker,
-                    "pitch":           0,
-                    "pace":            1.0,
-                    "loudness":        1.5,
-                    "speech_sample_rate": 8000,
-                    "enable_preprocessing": True,
-                    "model":           "bulbul:v1",
+                    "text":                chunk,
+                    "target_language_code": lang_code,
+                    "speaker":             speaker,
+                    "pace":                1.0,
+                    "sample_rate":         22050,
+                    "model":               "bulbul:v3",
                 },
                 timeout=20,
             )
@@ -143,6 +144,10 @@ def text_to_speech(text: str, language: str, mode: str = "patient") -> Optional[
             audio_b64 = data.get("audios", [""])[0]
             if audio_b64:
                 audio_parts.append(base64.b64decode(audio_b64))
+        except requests.exceptions.HTTPError as e:
+            body = e.response.text if e.response is not None else "no body"
+            print(f"⚠️  Sarvam TTS error on chunk: {e} — body: {body}")
+            continue
         except Exception as e:
             print(f"⚠️  Sarvam TTS error on chunk: {e}")
             continue
