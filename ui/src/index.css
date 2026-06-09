@@ -1,0 +1,205 @@
+@import url("https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=Fragment+Mono&family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --bg: #f3f3f1;
+  --bg-card: #ffffff;
+  --bg-card-soft: #f9f9f9;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --accent: #0048f9;
+  --secondary: #555555;
+  --danger: #e60000;
+  --warning: #e67300;
+  --success: #00a651;
+  --text-primary: #000000;
+  --text-secondary: #555555;
+  --text-muted: #888888;
+  --font-display: "Onest", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "Fragment Mono", monospace;
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+  font-weight: 600;
+}
+
+button {
+  font-family: var(--font-display);
+  cursor: pointer;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+/* Utilities */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+
+/* Components */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-hover);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #000000 0%, #0048f9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.display-font {
+  font-family: var(--font-display);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.badge-normal, .badge-low {
+  background: rgba(0, 166, 81, 0.08);
+  border-color: rgba(0, 166, 81, 0.15);
+  color: var(--success);
+}
+
+.badge-warning, .badge-moderate {
+  background: rgba(230, 115, 0, 0.08);
+  border-color: rgba(230, 115, 0, 0.15);
+  color: var(--warning);
+}
+
+.badge-danger, .badge-high {
+  background: rgba(230, 0, 0, 0.08);
+  border-color: rgba(230, 0, 0, 0.15);
+  color: var(--danger);
+}
+
+.premium-input {
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--bg-card-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.premium-input:focus {
+  border-color: var(--accent);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 4px rgba(0, 72, 249, 0.1);
+}
+
+.btn-premium {
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 16px 28px;
+  font-size: 15px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-premium:hover:not(:disabled) {
+  transform: scale(0.97);
+  background: #0036cc;
+  box-shadow: 0 4px 14px rgba(0, 72, 249, 0.25);
+}
+
+.btn-premium:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: 500;
+  padding: 16px 28px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.section {
+  margin-top: 80px;
+}
+
+.btn-premium:disabled, .btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
