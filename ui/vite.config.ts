@@ -1,13 +1,9 @@
 import { defineConfig } from 'vite';
 import path from 'path';
-import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react()],
 
   resolve: {
     alias: {
@@ -15,10 +11,16 @@ export default defineConfig({
     },
   },
 
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+  },
+
   server: {
-    host: true,  // ⬅ REQUIRED for cloud IDEs
+    host: true,
     allowedHosts: [
-      "5173-01khth4np36nvzmea2psj0r2xr.cloudspaces.litng.ai"  // ⬅ add your cloud host here
+      "5173-01khth4np36nvzmea2psj0r2xr.cloudspaces.litng.ai"
     ],
     proxy: {
       '/api': {
