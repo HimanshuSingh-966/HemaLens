@@ -1,0 +1,12 @@
+[build]
+  command = "cd ui && npm run build"
+  publish = "ui/dist"
+
+[dev]
+  command = "cd ui && npm run dev"
+  port = 3000
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
