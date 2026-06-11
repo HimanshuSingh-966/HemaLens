@@ -203,3 +203,30 @@ a {
   cursor: not-allowed;
   transform: none;
 }
+
+/* Decorative glow for results panel (responsive) */
+.risk-glow {
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  filter: blur(50px);
+  pointer-events: none;
+  z-index: 0;
+}
+.risk-normal { background: radial-gradient(circle, rgba(0,72,249,0.05) 0%, transparent 70%); }
+.risk-moderate { background: radial-gradient(circle, rgba(230,115,0,0.1) 0%, transparent 70%); }
+.risk-high { background: radial-gradient(circle, rgba(230,0,0,0.1) 0%, transparent 70%); }
+
+/* Mobile adjustments */
+@media (max-width: 640px) {
+  .app-main { padding: 24px 16px 40px !important; }
+  .section { margin-top: 40px; }
+  body { font-size: 14px; }
+  .glass-card { padding: 16px !important; border-radius: 12px; }
+  .display-font { font-size: clamp(16px, 5vw, 32px); }
+  .premium-input { padding: 12px 14px; }
+  .btn-premium, .btn-secondary { padding: 12px 18px; font-size: 14px; }
+  .risk-glow { display: none; }
+}

@@ -79,7 +79,7 @@ export default function Layout() {
         </div>
       </motion.header>
 
-      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '60px 24px 80px' }}>
+      <main className="app-main" style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '60px 24px 80px' }}>
         <Outlet />
       </main>
 

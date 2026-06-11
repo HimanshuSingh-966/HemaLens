@@ -83,14 +83,8 @@ export default function ResultsPanel({ data }) {
       
       {/* ── ALARM / HERO CARD ── */}
       <motion.div variants={itemVariants} className="glass-card flex justify-between" style={{ padding: '48px', flexWrap: 'wrap', gap: '40px', marginBottom: '32px', position: 'relative', overflow: 'hidden' }}>
-        {/* Subtle background glow based on risk level */}
-        <div style={{ 
-          position: 'absolute', top: '-50%', right: '-10%', width: '400px', height: '400px', 
-          background: data.risk_level === 'HIGH' ? 'radial-gradient(circle, rgba(230,0,0,0.1) 0%, transparent 70%)' :
-                      data.risk_level === 'MODERATE' ? 'radial-gradient(circle, rgba(230,115,0,0.1) 0%, transparent 70%)' :
-                      'radial-gradient(circle, rgba(0,72,249,0.05) 0%, transparent 70%)',
-          filter: 'blur(50px)', pointerEvents: 'none', zIndex: 0
-        }} />
+        {/* Subtle background glow based on risk level (moved to CSS for responsiveness) */}
+        <div className={`risk-glow risk-${(data.risk_level || 'normal').toLowerCase()}`} />
 
         <div style={{ flex: 1, zIndex: 1, position: 'relative' }}>
           <div className="mono" style={{ fontSize: '12px', color: 'var(--accent)', letterSpacing: '0.1em', marginBottom: '16px', textTransform: 'uppercase', fontWeight: 600 }}>
@@ -122,7 +116,7 @@ export default function ResultsPanel({ data }) {
         </div>
       </motion.div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '32px', marginBottom: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '32px', marginBottom: '32px' }}>
         
         {/* ── SPECIALIST GRID ── */}
         <motion.div variants={itemVariants} className="glass-card" style={{ padding: '32px' }}>
